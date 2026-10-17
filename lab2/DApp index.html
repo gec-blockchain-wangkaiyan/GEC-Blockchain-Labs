@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Betting DApp Lab2</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <style>
+        body {font-family: Arial;max-width:600px;margin:40px auto;padding:0 20px;}
+        .num-btn{padding:12px 20px;margin:4px;font-size:18px;cursor:pointer;}
+        #placeBet{padding:14px 30px;font-size:18px;margin-top:20px;background:#2196F3;color:white;border:none;border-radius:6px;}
+    </style>
+</head>
+<body>
+<h1>Bet for your best number and win huge amounts of Ether</h1>
+<p>Connected: <span id="account">Not connected</span></p>
+<p>Contract Address: <span id="contractAddr"></span></p>
+
+<div>
+    <h3>Choose your number (1‑10):</h3>
+    <div id="numberPanel"></div>
+    <p>Selected number: <span id="selected">None</span></p>
+    <button id="placeBet">Place Bet</button>
+</div>
+
+<script>
+
+const CONTRACT_ADDRESS = "0x7328ac79FbA76F218e959F4962E8972b32652491";
+
+const CONTRACT_ABI = [
+    {"constant":false,"inputs":[{"name":"numberToBet","type":"uint256"}],"name":"bet","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},
+    {"constant":false,"inputs":[],"name":"withdrawContractFund","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
+    {"constant":true,"inputs":[{"name":"player","type":"address"}],"name":"checkPlayerExists","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"maxAmountOfBets","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"minimumBet","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"numberWinner","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"numberOfBets","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"constant":true,"inputs":[],"name":"totalBet","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"_minimumBet","type":"uint256"},{"name":"_maxAmountOfBets","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},
+    {"anonymous":false,"inputs":[{"indexed":false,"name":"player","type":"address"},{"indexed":false,"name":"number","type":"uint256"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"BetPlaced","type":"event"},
+    {"anonymous":false,"inputs":[{"indexed":false,"name":"winner","type":"uint256"},{"indexed":false,"name":"pool","type":"uint256"},{"indexed":false,"name":"paid","type":"uint256"},{"indexed":false,"name":"carried","type":"uint256"}],"name":"RoundSettled","type":"event"}
+];
+
+let web3;
+let casinoContract;
+let userAccount;
+let selectedNumber = null;
+
+document.getElementById("contractAddr").innerText = CONTRACT_ADDRESS;
+
+const panel = document.getElementById("numberPanel");
+for(let i=1;i<=10;i++){
+    const btn = document.createElement("button");
+    btn.className = "num-btn";
+    btn.innerText = i;
+    btn.onclick = ()=>{
+        selectedNumber = i;
+        document.getElementById("selected").innerText = i;
+    };
+    panel.appendChild(btn);
+}
+
+async function connectMetaMask(){
+    if(window.ethereum){
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({method:"eth_requestAccounts"});
+        const accounts = await web3.eth.getAccounts();
+        userAccount = accounts[0];
+        document.getElementById("account").innerText = userAccount;
+        casinoContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+    }else{
+        alert("Please install MetaMask!");
+    }
+}
+
+document.getElementById("placeBet").onclick = async function(){
+    if(!userAccount) await connectMetaMask();
+    if(selectedNumber === null){
+        alert("Please choose a number 1‑10");
+        return;
+    }
+    // minimumBet = 100 finney = 0.1 ETH
+    const betValue = web3.utils.toWei("0.1","ether");
+    try{
+        await casinoContract.methods.bet(selectedNumber).send({
+            from: userAccount,
+            value: betValue
+        });
+        alert("Bet transaction sent!");
+    }catch(err){
+        console.error(err);
+        alert("Bet failed: "+err.message);
+    }
+}
+
+connectMetaMask();
+</script>
+</body>
