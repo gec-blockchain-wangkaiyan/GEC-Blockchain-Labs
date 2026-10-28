@@ -1,0 +1,4 @@
+mkdir web3-task
+cd web3-task
+npm init -y
+npm install web3
